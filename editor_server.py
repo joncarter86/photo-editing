@@ -78,6 +78,7 @@ def api_ocr():
         except Exception:  # noqa: BLE001
             filled_name = None
     except Exception as e:  # noqa: BLE001
+        import traceback; traceback.print_exc()
         if os.path.isfile(path):
             try:
                 os.remove(path)

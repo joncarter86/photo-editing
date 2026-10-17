@@ -292,3 +292,33 @@ def save_inpainted_and_layout(
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(layout, f, ensure_ascii=False, indent=2)
     return out_img, out_json
+
+def build_protected_inpaint_mask(
+    shape: Tuple[int, int, int],
+    text_polys: List[Any],
+    protected_polys: Optional[List[Any]] = None,
+    dilate_ksize: int = 3,
+    dilate_iters: int = 1,
+) -> np.ndarray:
+    """Build a text mask while excluding protected graphic regions."""
+    text_mask = build_inpaint_mask(
+        shape,
+        text_polys,
+        dilate_ksize=dilate_ksize,
+        dilate_iters=dilate_iters,
+    )
+
+    if not protected_polys:
+        return text_mask
+
+    h, w = shape[:2]
+    protected_mask = np.zeros((h, w), dtype=np.uint8)
+
+    for poly in protected_polys:
+        pts = _as_numpy_poly(poly)
+        if pts.shape[0] >= 3:
+            cv2.fillPoly(protected_mask, [pts], 255)
+
+    text_mask[protected_mask > 0] = 0
+
+    return text_mask

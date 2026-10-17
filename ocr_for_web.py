@@ -8,10 +8,15 @@ from typing import Any, Dict, List, Optional
 _ocr: Any = None
 
 
+
 def get_ocr():
     global _ocr
+
     if _ocr is None:
-        os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "1")
+        os.environ.setdefault(
+            "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "1"
+        )
+
         from paddleocr import PaddleOCR
 
         _ocr = PaddleOCR(
@@ -19,35 +24,65 @@ def get_ocr():
             use_doc_unwarping=False,
             use_textline_orientation=False,
             device="cpu",
-            text_detection_model_name="PP-OCRv5_mobile_det",
-            text_recognition_model_name="PP-OCRv5_mobile_rec",
+            enable_mkldnn=False,
+            text_detection_model_name="PP-OCRv5_server_det",
+text_recognition_model_name="PP-OCRv5_server_rec",
         )
+
     return _ocr
+
+
 
 
 def run_ocr_to_layout(image_path: str) -> Dict[str, Any]:
     import cv2
-
     from text_inpaint import build_text_layout, ocr_result_to_dict
 
     bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)
+
     w, h = 0, 0
     if bgr is not None:
-        h, w = bgr.shape[0], bgr.shape[1]
+        h, w = bgr.shape[:2]
+
     ocr = get_ocr()
+
     for res in ocr.predict(image_path):
         d = ocr_result_to_dict(res)
+
+        # Debug output: show what PaddleOCR detected
+        print("\n========== OCR DEBUG ==========", flush=True)
+
+        texts = d.get("rec_texts")
+        polys = d.get("rec_polys")
+
+        print("Detected text:", texts, flush=True)
+        print(
+            "Text count:",
+            len(texts) if texts is not None else 0,
+            flush=True,
+        )
+        print(
+            "Polygon count:",
+            len(polys) if polys is not None else 0,
+            flush=True,
+        )
+        print("================================\n", flush=True)
+
         if bgr is None:
             bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)
+
         if bgr is not None:
-            h, w = bgr.shape[0], bgr.shape[1]
+            h, w = bgr.shape[:2]
+
         return build_text_layout(d, w, h, bgr=bgr)
+
     return {
         "image": {"width": w, "height": h},
         "regions": [],
         "source": image_path,
         "meta": {"size_color_weight": ""},
     }
+
 
 
 def write_filled_basename(

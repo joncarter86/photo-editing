@@ -1333,3 +1333,13 @@ button.btn--block:hover:not(:disabled) {
     padding: 1.1rem 1rem 2.25rem 1rem;
   }
 }
+/* Original background: hide editable text to prevent duplicates. */
+.stage:not(.use-filled) .reg__inner {
+  visibility: hidden;
+}
+
+/* Keep selected text accessible for editing. */
+.stage:not(.use-filled) .reg.reg--selected .reg__inner,
+.stage:not(.use-filled) .reg:focus-within .reg__inner {
+  visibility: visible;
+}
